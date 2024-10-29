@@ -50,9 +50,10 @@ wss.on("connection", (ws, req) => {
 
     if (p1 && p2) {
         gameState = GameState.Running;
-        ([p1, p2]).forEach(player => {
+        ([p1, p2]).forEach((player, idx) => {
             const msgBufferView = new DataView(new ArrayBuffer(common.MessageNewGame.size))
             common.MessageNewGame.kind.write(msgBufferView, common.MessageKind.NewGame)
+            common.MessageNewGame.playerSlot.write(msgBufferView, idx)
             player.ws.send(msgBufferView)
         });
     }
@@ -107,19 +108,15 @@ function sendSyncMessages() {
         common.MessageResync.ball.dy.write(view, ball.dy)
         common.MessageResync.ball.dx.write(view, ball.dx)
 
-        common.MessageResync.p1.moving.write(view, player.moving)
-        common.MessageResync.p1.score.write(view, player.score)
-        common.MessageResync.p1.y.write(view, player.box.y)
+        common.MessageResync.p1.moving.write(view, p1!.moving)
+        common.MessageResync.p1.score.write(view, p1!.score)
+        common.MessageResync.p1.y.write(view, p1!.box.y)
 
-        const otherPlayer = getOtherPlayer(player) as PlayerOnServer
-        common.MessageResync.p2.moving.write(view, otherPlayer.moving)
-        common.MessageResync.p2.score.write(view, otherPlayer.score)
-        common.MessageResync.p2.y.write(view, otherPlayer.box.y)
+        common.MessageResync.p2.moving.write(view, p2!.moving)
+        common.MessageResync.p2.score.write(view, p2!.score)
+        common.MessageResync.p2.y.write(view, p2!.box.y)
 
         player.ws.send(view)
-
-        // console.log(view)
-
     });
 
 }

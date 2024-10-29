@@ -18,6 +18,7 @@ const resetGameState = () => {
     ball = { ...init_ball }
 }
 
+let myPlayer: Player | null = null
 
 const ws: WebSocket = new WebSocket(`ws://${common.SERVER_ADDR}:${common.SERVER_PORT}`)
 ws.binaryType = 'arraybuffer'
@@ -37,8 +38,9 @@ ws.addEventListener("message", (event) => {
     const view = new DataView(event.data)
     if (common.MessageNewGame.verify(view)) {
         gameState = GameState.Running
+        myPlayer = [p1, p2][common.MessageNewGame.playerSlot.read(view)]
     } else if (common.MessageMove.verify(view)) {
-        p2.moving = common.MessageMove.moving.read(view)
+        (p1 === myPlayer ? p2 : p1).moving = common.MessageMove.moving.read(view)
 
     } else if (common.MessageResync.verify(view)) {
         gameState = common.MessageResync.gamestate.read(view)
@@ -56,8 +58,6 @@ ws.addEventListener("message", (event) => {
         p2.box.y = common.MessageResync.p2.y.read(view)
         p2.score = common.MessageResync.p2.score.read(view)
 
-        console.log("[INFO] Syncing")
-        console.log(ball.x)
     } else {
         console.log("[ERROR] invliad message, closing")
         ws.close()
@@ -141,13 +141,15 @@ const sendMoveMessage = (moveValue: number) => {
 window.addEventListener("keydown", (e) => {
     if (e.repeat) return;
 
+    if (myPlayer === null) return;
+
     if (e.key === "w") {
-        p1.moving = -1
         sendMoveMessage(-1)
+        myPlayer.moving = -1
     }
     if (e.key === "s") {
         sendMoveMessage(1)
-        p1.moving = 1
+        myPlayer.moving = 1
     }
 
     // if (e.key === "ArrowUp")
@@ -159,9 +161,11 @@ window.addEventListener("keydown", (e) => {
 
 window.addEventListener("keyup", (e) => {
     if (e.repeat) return;
+    if (myPlayer === null) return;
+
     if (e.key === "w" || e.key == "s") {
         sendMoveMessage(0)
-        p1.moving = 0
+        myPlayer.moving = 0
     }
 
     // if (e.key === "ArrowUp" || e.key == "ArrowDown") {

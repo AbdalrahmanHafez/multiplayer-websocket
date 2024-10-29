@@ -121,9 +121,10 @@ export const MessageMove = (() => {
 export const MessageNewGame = (() => {
     const allocator = { size: 0 }
     const kind = allocUint8Field(allocator);
+    const playerSlot = allocUint8Field(allocator);
     const size = allocator.size;
     const verify = verifySizeKind(kind, MessageKind.NewGame, size)
-    return { kind, size, verify }
+    return { kind, playerSlot, size, verify }
 })();
 
 export const MessageResync = (() => {
