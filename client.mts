@@ -20,49 +20,80 @@ const resetGameState = () => {
 
 let myPlayer: Player | null = null
 
-const ws: WebSocket = new WebSocket(`ws://${common.SERVER_ADDR}:${common.SERVER_PORT}`)
-ws.binaryType = 'arraybuffer'
-ws.addEventListener("close", (event) => {
-    console.log("[INFO] socket closed")
-    resetGameState()
-})
-ws.addEventListener("error", (event) => {
-    console.log("[ERROR] socket error")
-})
-ws.addEventListener("message", (event) => {
-    if (!(event.data instanceof ArrayBuffer)) {
-        console.log("[ERROR] invliad message data, closing")
-        ws.close()
-    }
+let ws: WebSocket;
+let reconnectAttempts = 0;
 
-    const view = new DataView(event.data)
-    if (common.MessageNewGame.verify(view)) {
-        gameState = GameState.Running
-        myPlayer = [p1, p2][common.MessageNewGame.playerSlot.read(view)]
-    } else if (common.MessageMove.verify(view)) {
-        (p1 === myPlayer ? p2 : p1).moving = common.MessageMove.moving.read(view)
+const connectWebSocket = () => {
+    ws = new WebSocket(`ws://${common.SERVER_ADDR}:${common.SERVER_PORT}`);
+    ws.binaryType = 'arraybuffer';
 
-    } else if (common.MessageResync.verify(view)) {
-        gameState = common.MessageResync.gamestate.read(view)
+    ws.addEventListener("open", () => {
+        console.log("[INFO] WebSocket connected");
+        reconnectAttempts = 0; // Reset attempts on successful connection
+    });
 
-        ball.x = common.MessageResync.ball.x.read(view)
-        ball.y = common.MessageResync.ball.y.read(view)
-        ball.dy = common.MessageResync.ball.dy.read(view)
-        ball.dx = common.MessageResync.ball.dx.read(view)
+    ws.addEventListener("close", (event) => {
+        console.log("[INFO] WebSocket closed, attempting to reconnect...");
+        resetGameState();
+        reconnectWebSocket();
+    });
 
-        p1.moving = common.MessageResync.p1.moving.read(view)
-        p1.box.y = common.MessageResync.p1.y.read(view)
-        p1.score = common.MessageResync.p1.score.read(view)
+    ws.addEventListener("error", (event) => {
+        console.log("[ERROR] WebSocket encountered an error");
+    });
 
-        p2.moving = common.MessageResync.p2.moving.read(view)
-        p2.box.y = common.MessageResync.p2.y.read(view)
-        p2.score = common.MessageResync.p2.score.read(view)
+    ws.addEventListener("message", (event) => {
+        if (!(event.data instanceof ArrayBuffer)) {
+            console.log("[ERROR] Invalid message data, closing WebSocket");
+            ws.close();
+            return;
+        }
 
+        const view = new DataView(event.data);
+        if (common.MessageNewGame.verify(view)) {
+            gameState = GameState.Running;
+            myPlayer = [p1, p2][common.MessageNewGame.playerSlot.read(view)];
+        } else if (common.MessageMove.verify(view)) {
+            (p1 === myPlayer ? p2 : p1).moving = common.MessageMove.moving.read(view);
+        } else if (common.MessageResync.verify(view)) {
+            gameState = common.MessageResync.gamestate.read(view);
+
+            ball.x = common.MessageResync.ball.x.read(view);
+            ball.y = common.MessageResync.ball.y.read(view);
+            ball.dy = common.MessageResync.ball.dy.read(view);
+            ball.dx = common.MessageResync.ball.dx.read(view);
+
+            p1.moving = common.MessageResync.p1.moving.read(view);
+            p1.box.y = common.MessageResync.p1.y.read(view);
+            p1.score = common.MessageResync.p1.score.read(view);
+
+            p2.moving = common.MessageResync.p2.moving.read(view);
+            p2.box.y = common.MessageResync.p2.y.read(view);
+            p2.score = common.MessageResync.p2.score.read(view);
+        } else {
+            console.log("[ERROR] Invalid message, closing WebSocket");
+            ws.close();
+        }
+    });
+};
+
+const reconnectWebSocket = () => {
+    const maxReconnectAttempts = 5;
+    const reconnectDelay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Exponential backoff, max 30 seconds
+
+    if (reconnectAttempts < maxReconnectAttempts) {
+        setTimeout(() => {
+            reconnectAttempts++;
+            console.log(`[INFO] Reconnecting attempt ${reconnectAttempts}...`);
+            connectWebSocket();
+        }, reconnectDelay);
     } else {
-        console.log("[ERROR] invliad message, closing")
-        ws.close()
+        console.log("[ERROR] Max reconnect attempts reached. Unable to reconnect.");
     }
-})
+};
+
+
+connectWebSocket()
 
 let previousTimestamp = 0;
 var loop = function (time: number) {

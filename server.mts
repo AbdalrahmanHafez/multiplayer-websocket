@@ -2,7 +2,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import * as common from './common.mjs'
 import { applyCollidBallPlayer, checkWin, updateBallState, updatePlayerState, log_debug, log_error, init_playerLeft, init_playerRight, GameState, Ball, init_ball, Player } from './common.mjs';
 
-const TICKS_TO_SYNC = 20
+const TICKS_TO_SYNC = 30
 const SERVER_FPS = 60;
 let idCounter = 0;
 
