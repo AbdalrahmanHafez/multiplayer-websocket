@@ -1,5 +1,5 @@
 import * as common from './common.mjs'
-import { Ball, Player, BBox, Point, SCREEN_PADDING, PLAYER_HEIGHT, PLAYER_SPEED, PLAYER_WIDTH, BALL_RADIUS, BALL_SPEED, GameState, init_ball, checkWin, updateBallState, updatePlayerState, applyCollidBallPlayer } from './common.mjs';
+import { init_playerLeft, init_playerRight, Ball, Player, BBox, Point, SCREEN_PADDING, PLAYER_HEIGHT, PLAYER_SPEED, PLAYER_WIDTH, BALL_RADIUS, BALL_SPEED, GameState, init_ball, checkWin, updateBallState, updatePlayerState, applyCollidBallPlayer } from './common.mjs';
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement | null;
 if (canvas === null) throw new Error("No element with id `canvas`")
@@ -7,27 +7,35 @@ const ctx = canvas.getContext('2d');
 if (ctx === null) throw new Error("No 2D context")
 
 let gameState: GameState = GameState.WaitingPlayer
-const p1: Player = {
-    box: {
-        x: SCREEN_PADDING,
-        y: canvas.height / 2 - PLAYER_HEIGHT / 2,
-        w: PLAYER_WIDTH,
-        h: PLAYER_HEIGHT,
-    },
-    moving: 0,
-    score: 0,
-}
-const p2: Player = {
-    box: {
-        x: canvas.width - (SCREEN_PADDING + PLAYER_WIDTH),
-        y: canvas.height / 2 - PLAYER_HEIGHT / 2,
-        w: PLAYER_WIDTH,
-        h: PLAYER_HEIGHT,
-    },
-    moving: 0,
-    score: 0,
-}
+const p1: Player = { ...init_playerLeft }
+const p2: Player = { ...init_playerRight }
 const ball: Ball = { ...init_ball }
+
+
+const ws: WebSocket = new WebSocket(`ws://${common.SERVER_ADDR}:${common.SERVER_PORT}`)
+ws.binaryType = 'arraybuffer'
+ws.addEventListener("close", (event) => {
+    console.log("[INFO] socket closed")
+})
+ws.addEventListener("error", (event) => {
+    console.log("[ERROR] socket error")
+})
+ws.addEventListener("message", (event) => {
+    console.log("[INFO] socket message")
+    if (!(event.data instanceof ArrayBuffer)) {
+        console.log("[ERROR] invliad message data, closing")
+        ws.close()
+    }
+
+    const view = new DataView(event.data)
+    if (common.MessageNewGame.verify(view)) {
+        gameState = GameState.Running
+
+    } else {
+        console.log("[ERROR] invliad message, closing")
+        ws.close()
+    }
+})
 
 let previousTimestamp = 0;
 var loop = function (time: number) {
