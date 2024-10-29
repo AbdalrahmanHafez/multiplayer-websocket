@@ -39,7 +39,24 @@ function allocUint8Field(allocator: { size: number }): Field {
         offset,
         size: UINT8_SIZE,
         read: (view) => view.getUint8(offset),
-        write: (view, data) => view.setUint8(offset, data),
+        write: (view, data) => {
+            if (data < 0 || data > 0xFF) return log_error(`Data overflow: Cannot write ${data} to a UINT8 field`);
+            view.setUint8(offset, data);
+        },
+    }
+}
+
+function allocUint16Field(allocator: { size: number }): Field {
+    const offset = allocator.size;
+    allocator.size += 2;
+    return {
+        offset,
+        size: UINT8_SIZE,
+        read: (view) => view.getUint16(offset),
+        write: (view, data) => {
+            if (data < 0 || data > 0xFFFF) return log_error(`Data overflow: Cannot write ${data} to a UINT16 field`)
+            view.setUint16(offset, data);
+        },
     }
 }
 
@@ -56,9 +73,9 @@ function allocInt8Field(allocator: { size: number }): Field {
 
 function allocPlayerStruct(allocator: { size: number }) {
     const offset = allocator.size;
-    const y = allocUint8Field(allocator)
-    const moving = allocUint8Field(allocator)
-    const score = allocUint8Field(allocator)
+    const y = allocUint16Field(allocator)
+    const moving = allocInt8Field(allocator)
+    const score = allocUint16Field(allocator)
     return {
         offset,
         y,
@@ -69,10 +86,10 @@ function allocPlayerStruct(allocator: { size: number }) {
 }
 function allocBallStruct(allocator: { size: number }) {
     const offset = allocator.size;
-    const x = allocUint8Field(allocator)
-    const y = allocUint8Field(allocator)
-    const dx = allocUint8Field(allocator)
-    const dy = allocUint8Field(allocator)
+    const x = allocUint16Field(allocator)
+    const y = allocUint16Field(allocator)
+    const dx = allocInt8Field(allocator)
+    const dy = allocInt8Field(allocator)
 
     return {
         offset,
@@ -247,5 +264,9 @@ export function assert(condition: boolean, message?: string) {
 }
 
 export const log_error = (msg: string) => {
-    console.log("[ERROR] ", msg)
+    console.log("[ERROR]", msg)
+}
+
+export const log_debug = (...msg: Array<any>) => {
+    console.log("[DEBUG] --", msg)
 }

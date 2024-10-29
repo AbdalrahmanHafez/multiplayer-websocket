@@ -1,8 +1,8 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import * as common from './common.mjs'
-import { log_error, init_playerLeft, init_playerRight, GameState, Ball, init_ball, Player } from './common.mjs';
+import { applyCollidBallPlayer, checkWin, updateBallState, updatePlayerState, log_debug, log_error, init_playerLeft, init_playerRight, GameState, Ball, init_ball, Player } from './common.mjs';
 
-
+const TICKS_TO_SYNC = 20
 const SERVER_FPS = 60;
 let idCounter = 0;
 
@@ -46,15 +46,16 @@ wss.on("connection", (ws, req) => {
         p1 = { ...init_playerLeft, ws: ws, remoteaddress: remoteAddress }
     } else {
         p2 = { ...init_playerRight, ws: ws, remoteaddress: remoteAddress }
-        gameState = GameState.Running;
+    }
 
+    if (p1 && p2) {
+        gameState = GameState.Running;
         ([p1, p2]).forEach(player => {
             const msgBufferView = new DataView(new ArrayBuffer(common.MessageNewGame.size))
             common.MessageNewGame.kind.write(msgBufferView, common.MessageKind.NewGame)
             player.ws.send(msgBufferView)
         });
     }
-
 
     ws.on("message", (data) => {
         if (!(data instanceof ArrayBuffer)) {
@@ -67,8 +68,10 @@ wss.on("connection", (ws, req) => {
         if (common.MessageMove.verify(view)) {
             const player = getPlayerFromWs(ws)
             if (player === null) return log_error("Invalid player")
-            const otherPlayer = getOtherPlayer(player)
 
+            player.moving = common.MessageMove.moving.read(view);
+
+            const otherPlayer = getOtherPlayer(player)
             otherPlayer?.ws.send(view)
 
         } else {
@@ -77,23 +80,84 @@ wss.on("connection", (ws, req) => {
         }
     })
 
-    ws.on("close", () => { })
+    ws.on("close", () => {
+        console.log("[INFO] socket close")
+        if (p1 != null) {
+            p1.ws.close()
+            p1 = null
+        }
+        if (p2 != null) {
+            p2.ws.close()
+            p2 = null
+        }
+    })
 
 });
+
+function sendSyncMessages() {
+    if (p1 === null || p2 === null) return
+
+    ([p1, p2]).forEach(player => {
+        const view = new DataView(new ArrayBuffer(common.MessageResync.size))
+        common.MessageResync.kind.write(view, common.MessageKind.Resync)
+        common.MessageResync.gamestate.write(view, gameState)
+
+        common.MessageResync.ball.x.write(view, ball.x)
+        common.MessageResync.ball.y.write(view, ball.y)
+        common.MessageResync.ball.dy.write(view, ball.dy)
+        common.MessageResync.ball.dx.write(view, ball.dx)
+
+        common.MessageResync.p1.moving.write(view, player.moving)
+        common.MessageResync.p1.score.write(view, player.score)
+        common.MessageResync.p1.y.write(view, player.box.y)
+
+        const otherPlayer = getOtherPlayer(player) as PlayerOnServer
+        common.MessageResync.p2.moving.write(view, otherPlayer.moving)
+        common.MessageResync.p2.score.write(view, otherPlayer.score)
+        common.MessageResync.p2.y.write(view, otherPlayer.box.y)
+
+        player.ws.send(view)
+
+        // console.log(view)
+
+    });
+
+}
 
 let gameState: GameState = GameState.WaitingPlayer;
 let p1: PlayerOnServer | null = null;
 let p2: PlayerOnServer | null = null
 const ball: Ball = { ...init_ball }
 
+let ticksToSync = TICKS_TO_SYNC;
 let previousTimestamp = performance.now();
 const loop = () => {
-    setTimeout(loop, 1000 / SERVER_FPS);
-    const time = performance.now();
-    const deltaTime = (time - previousTimestamp) / 1000
-    previousTimestamp = time
+    const timestamp = performance.now();
+    const deltaTime = (timestamp - previousTimestamp) / 1000
+    previousTimestamp = timestamp
+    ticksToSync -= 1
+    if (ticksToSync <= 0) {
+        sendSyncMessages()
+        ticksToSync = TICKS_TO_SYNC
+        // log_debug(ball.x)
+    }
 
+    if (p1 && p2 && gameState === GameState.Running) {
+        checkWin(ball, p1, p2)
+
+        updatePlayerState(p1, deltaTime);
+        updatePlayerState(p2, deltaTime);
+
+        updateBallState(ball, deltaTime);
+
+        applyCollidBallPlayer(ball, p1);
+        applyCollidBallPlayer(ball, p2);
+    }
+
+    const tickTime = performance.now() - timestamp
+    setTimeout(loop, Math.max(0, 1000 / SERVER_FPS - tickTime));
 }
 
 
 loop()
+

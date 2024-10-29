@@ -7,21 +7,28 @@ const ctx = canvas.getContext('2d');
 if (ctx === null) throw new Error("No 2D context")
 
 let gameState: GameState = GameState.WaitingPlayer
-const p1: Player = { ...init_playerLeft }
-const p2: Player = { ...init_playerRight }
-const ball: Ball = { ...init_ball }
+let p1: Player = { ...init_playerLeft }
+let p2: Player = { ...init_playerRight }
+let ball: Ball = { ...init_ball }
+
+const resetGameState = () => {
+    gameState = GameState.WaitingPlayer
+    p1 = { ...init_playerLeft }
+    p2 = { ...init_playerLeft }
+    ball = { ...init_ball }
+}
 
 
 const ws: WebSocket = new WebSocket(`ws://${common.SERVER_ADDR}:${common.SERVER_PORT}`)
 ws.binaryType = 'arraybuffer'
 ws.addEventListener("close", (event) => {
     console.log("[INFO] socket closed")
+    resetGameState()
 })
 ws.addEventListener("error", (event) => {
     console.log("[ERROR] socket error")
 })
 ws.addEventListener("message", (event) => {
-    console.log("[INFO] socket message")
     if (!(event.data instanceof ArrayBuffer)) {
         console.log("[ERROR] invliad message data, closing")
         ws.close()
@@ -32,6 +39,25 @@ ws.addEventListener("message", (event) => {
         gameState = GameState.Running
     } else if (common.MessageMove.verify(view)) {
         p2.moving = common.MessageMove.moving.read(view)
+
+    } else if (common.MessageResync.verify(view)) {
+        gameState = common.MessageResync.gamestate.read(view)
+
+        ball.x = common.MessageResync.ball.x.read(view)
+        ball.y = common.MessageResync.ball.y.read(view)
+        ball.dy = common.MessageResync.ball.dy.read(view)
+        ball.dx = common.MessageResync.ball.dx.read(view)
+
+        p1.moving = common.MessageResync.p1.moving.read(view)
+        p1.box.y = common.MessageResync.p1.y.read(view)
+        p1.score = common.MessageResync.p1.score.read(view)
+
+        p2.moving = common.MessageResync.p2.moving.read(view)
+        p2.box.y = common.MessageResync.p2.y.read(view)
+        p2.score = common.MessageResync.p2.score.read(view)
+
+        console.log("[INFO] Syncing")
+        console.log(ball.x)
     } else {
         console.log("[ERROR] invliad message, closing")
         ws.close()
