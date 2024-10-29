@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import * as common from './common.mjs'
-import { init_playerLeft, init_playerRight, GameState, Ball, init_ball, Player } from './common.mjs';
+import { log_error, init_playerLeft, init_playerRight, GameState, Ball, init_ball, Player } from './common.mjs';
+
 
 const SERVER_FPS = 60;
 let idCounter = 0;
@@ -13,6 +14,20 @@ interface PlayerOnServer extends Player {
 const wss = new WebSocketServer({
     port: common.SERVER_PORT,
 })
+
+const getPlayerFromWs = (ws: WebSocket) => {
+    if (!p1 || !p2) return null
+    if (p1.ws === ws) return p1
+    if (p2.ws === ws) return p2
+    return null
+}
+
+const getOtherPlayer = (player: PlayerOnServer) => {
+    if (!p1 || !p2) return null
+    if (player === p2) return p1
+    if (player === p1) return p2
+    return null
+}
 
 
 wss.on("connection", (ws, req) => {
@@ -41,7 +56,26 @@ wss.on("connection", (ws, req) => {
     }
 
 
-    ws.on("message", (event) => { })
+    ws.on("message", (data) => {
+        if (!(data instanceof ArrayBuffer)) {
+            ws.close();
+            return;
+        }
+
+        const view = new DataView(data)
+
+        if (common.MessageMove.verify(view)) {
+            const player = getPlayerFromWs(ws)
+            if (player === null) return log_error("Invalid player")
+            const otherPlayer = getOtherPlayer(player)
+
+            otherPlayer?.ws.send(view)
+
+        } else {
+            console.log("[ERROR] invliad message, closing")
+            ws.close()
+        }
+    })
 
     ws.on("close", () => { })
 

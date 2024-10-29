@@ -43,6 +43,17 @@ function allocUint8Field(allocator: { size: number }): Field {
     }
 }
 
+function allocInt8Field(allocator: { size: number }): Field {
+    const offset = allocator.size;
+    allocator.size += 1;
+    return {
+        offset,
+        size: UINT8_SIZE,
+        read: (view) => view.getInt8(offset),
+        write: (view, data) => view.setInt8(offset, data),
+    }
+}
+
 function allocPlayerStruct(allocator: { size: number }) {
     const offset = allocator.size;
     const y = allocUint8Field(allocator)
@@ -83,7 +94,7 @@ export const MessageMove = (() => {
     const allocator = { size: 0 }
     const kind = allocUint8Field(allocator);
 
-    const moving = allocUint8Field(allocator);
+    const moving = allocInt8Field(allocator);
 
     const size = allocator.size;
     const verify = verifySizeKind(kind, MessageKind.Move, size)
@@ -233,4 +244,8 @@ export function assert(condition: boolean, message?: string) {
     if (!condition) {
         throw new Error(message || "Assertion failed");
     }
+}
+
+export const log_error = (msg: string) => {
+    console.log("[ERROR] ", msg)
 }

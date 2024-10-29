@@ -30,7 +30,8 @@ ws.addEventListener("message", (event) => {
     const view = new DataView(event.data)
     if (common.MessageNewGame.verify(view)) {
         gameState = GameState.Running
-
+    } else if (common.MessageMove.verify(view)) {
+        p2.moving = common.MessageMove.moving.read(view)
     } else {
         console.log("[ERROR] invliad message, closing")
         ws.close()
@@ -102,25 +103,42 @@ var loop = function (time: number) {
 
 
 requestAnimationFrame(loop);
+
+
+const sendMoveMessage = (moveValue: number) => {
+    const view = new DataView(new ArrayBuffer(common.MessageMove.size))
+    common.MessageMove.kind.write(view, common.MessageKind.Move)
+    common.MessageMove.moving.write(view, moveValue)
+    ws.send(view)
+}
+
 window.addEventListener("keydown", (e) => {
     if (e.repeat) return;
-    if (e.key === "w")
-        p1.moving = -1
-    if (e.key === "s")
-        p1.moving = 1
 
-    if (e.key === "ArrowUp")
-        p2.moving = -1
-    if (e.key === "ArrowDown")
-        p2.moving = 1
+    if (e.key === "w") {
+        p1.moving = -1
+        sendMoveMessage(-1)
+    }
+    if (e.key === "s") {
+        sendMoveMessage(1)
+        p1.moving = 1
+    }
+
+    // if (e.key === "ArrowUp")
+    //     p2.moving = -1
+    // if (e.key === "ArrowDown")
+    //     p2.moving = 1
 
 });
 
 window.addEventListener("keyup", (e) => {
     if (e.repeat) return;
-    if (e.key === "w" || e.key == "s")
+    if (e.key === "w" || e.key == "s") {
+        sendMoveMessage(0)
         p1.moving = 0
+    }
 
-    if (e.key === "ArrowUp" || e.key == "ArrowDown")
-        p2.moving = 0
+    // if (e.key === "ArrowUp" || e.key == "ArrowDown") {
+    //     p2.moving = 0
+    // }
 });
