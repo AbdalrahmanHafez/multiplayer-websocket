@@ -93,8 +93,6 @@ const reconnectWebSocket = () => {
 };
 
 
-
-
 const sendMoveMessage = (moveValue: number) => {
     const view = new DataView(new ArrayBuffer(common.MessageMove.size))
     common.MessageMove.kind.write(view, common.MessageKind.Move)
@@ -137,47 +135,6 @@ window.addEventListener("keyup", (e) => {
     // }
 });
 
-
-
-let previousTimestamp = 0;
-var loop = function (time: number) {
-    if (previousTimestamp === 0)
-        previousTimestamp = time - (1000 / 60)
-
-    const deltaTime = (time - previousTimestamp) / 1000
-    previousTimestamp = time
-
-    update(deltaTime)
-
-    requestAnimationFrame(loop);
-};
-
-requestAnimationFrame(loop);
-
-
-var tickLengthMs = 1000 / 60
-var previousTick = Date.now()
-var actualTicks = 0
-var gameLoop = function () {
-    var now = Date.now()
-
-    actualTicks++
-    if (previousTick + tickLengthMs <= now) {
-        var delta = (now - previousTick) / 1000
-        previousTick = now
-
-        update(delta)
-
-        console.log('delta', delta, '(target: ' + tickLengthMs + ' ms)', 'node ticks', actualTicks)
-        actualTicks = 0
-    }
-
-    if (Date.now() - previousTick < tickLengthMs - 16) {
-        setTimeout(gameLoop)
-    } else {
-        Promise.resolve().then(gameLoop);
-    }
-}
 
 
 var update = function (deltaTime: number) {
@@ -236,6 +193,20 @@ var update = function (deltaTime: number) {
 
 }
 
-connectWebSocket()
 
-// gameLoop()
+let previousTimestamp = 0;
+var loop = function (time: number) {
+    if (previousTimestamp === 0)
+        previousTimestamp = time - (1000 / 60)
+
+    const deltaTime = (time - previousTimestamp) / 1000
+    previousTimestamp = time
+
+    update(deltaTime)
+
+    requestAnimationFrame(loop);
+};
+
+requestAnimationFrame(loop);
+
+connectWebSocket()
