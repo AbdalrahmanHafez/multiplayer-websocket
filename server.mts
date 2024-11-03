@@ -4,7 +4,6 @@ import { applyCollidBallPlayer, checkWin, updateBallState, updatePlayerState, lo
 
 const TICKS_TO_SYNC = 30
 const SERVER_FPS = 60;
-let idCounter = 0;
 
 interface PlayerOnServer extends Player {
     ws: WebSocket
@@ -126,12 +125,35 @@ let p1: PlayerOnServer | null = null;
 let p2: PlayerOnServer | null = null
 const ball: Ball = { ...init_ball }
 
+
 let ticksToSync = TICKS_TO_SYNC;
-let previousTimestamp = performance.now();
-const loop = () => {
-    const timestamp = performance.now();
-    const deltaTime = (timestamp - previousTimestamp) / 1000
-    previousTimestamp = timestamp
+
+var tickLengthMs = 1000 / SERVER_FPS
+var previousTick = Date.now()
+var actualTicks = 0
+var gameLoop = function () {
+    var now = Date.now()
+
+    actualTicks++
+    if (previousTick + tickLengthMs <= now) {
+        var delta = (now - previousTick) / 1000
+        previousTick = now
+
+        update(delta)
+
+        console.log('delta', delta, '(target: ' + tickLengthMs + ' ms)', 'node ticks', actualTicks)
+        actualTicks = 0
+    }
+
+    if (Date.now() - previousTick < tickLengthMs - 16) {
+        setTimeout(gameLoop)
+    } else {
+        setImmediate(gameLoop)
+    }
+}
+
+
+var update = function (deltaTime: number) {
     ticksToSync -= 1
     if (ticksToSync <= 0) {
         sendSyncMessages()
@@ -151,10 +173,7 @@ const loop = () => {
         applyCollidBallPlayer(ball, p2);
     }
 
-    const tickTime = performance.now() - timestamp
-    setTimeout(loop, Math.max(0, 1000 / SERVER_FPS - tickTime));
 }
 
-
-loop()
+gameLoop()
 

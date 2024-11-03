@@ -93,7 +93,51 @@ const reconnectWebSocket = () => {
 };
 
 
-connectWebSocket()
+
+
+const sendMoveMessage = (moveValue: number) => {
+    const view = new DataView(new ArrayBuffer(common.MessageMove.size))
+    common.MessageMove.kind.write(view, common.MessageKind.Move)
+    common.MessageMove.moving.write(view, moveValue)
+    ws.send(view)
+}
+
+window.addEventListener("keydown", (e) => {
+    if (e.repeat) return;
+
+    if (myPlayer === null) return;
+
+    if (e.key === "w") {
+        sendMoveMessage(-1)
+        myPlayer.moving = -1
+    }
+    if (e.key === "s") {
+        sendMoveMessage(1)
+        myPlayer.moving = 1
+    }
+
+    // if (e.key === "ArrowUp")
+    //     p2.moving = -1
+    // if (e.key === "ArrowDown")
+    //     p2.moving = 1
+
+});
+
+window.addEventListener("keyup", (e) => {
+    if (e.repeat) return;
+    if (myPlayer === null) return;
+
+    if (e.key === "w" || e.key == "s") {
+        sendMoveMessage(0)
+        myPlayer.moving = 0
+    }
+
+    // if (e.key === "ArrowUp" || e.key == "ArrowDown") {
+    //     p2.moving = 0
+    // }
+});
+
+
 
 let previousTimestamp = 0;
 var loop = function (time: number) {
@@ -103,6 +147,40 @@ var loop = function (time: number) {
     const deltaTime = (time - previousTimestamp) / 1000
     previousTimestamp = time
 
+    update(deltaTime)
+
+    requestAnimationFrame(loop);
+};
+
+requestAnimationFrame(loop);
+
+
+var tickLengthMs = 1000 / 60
+var previousTick = Date.now()
+var actualTicks = 0
+var gameLoop = function () {
+    var now = Date.now()
+
+    actualTicks++
+    if (previousTick + tickLengthMs <= now) {
+        var delta = (now - previousTick) / 1000
+        previousTick = now
+
+        update(delta)
+
+        console.log('delta', delta, '(target: ' + tickLengthMs + ' ms)', 'node ticks', actualTicks)
+        actualTicks = 0
+    }
+
+    if (Date.now() - previousTick < tickLengthMs - 16) {
+        setTimeout(gameLoop)
+    } else {
+        Promise.resolve().then(gameLoop);
+    }
+}
+
+
+var update = function (deltaTime: number) {
     // Clear
     ctx.fillStyle = 'black'
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -155,51 +233,9 @@ var loop = function (time: number) {
         console.error("Unreachable");
     }
 
-    requestAnimationFrame(loop);
-};
 
-
-requestAnimationFrame(loop);
-
-
-const sendMoveMessage = (moveValue: number) => {
-    const view = new DataView(new ArrayBuffer(common.MessageMove.size))
-    common.MessageMove.kind.write(view, common.MessageKind.Move)
-    common.MessageMove.moving.write(view, moveValue)
-    ws.send(view)
 }
 
-window.addEventListener("keydown", (e) => {
-    if (e.repeat) return;
+connectWebSocket()
 
-    if (myPlayer === null) return;
-
-    if (e.key === "w") {
-        sendMoveMessage(-1)
-        myPlayer.moving = -1
-    }
-    if (e.key === "s") {
-        sendMoveMessage(1)
-        myPlayer.moving = 1
-    }
-
-    // if (e.key === "ArrowUp")
-    //     p2.moving = -1
-    // if (e.key === "ArrowDown")
-    //     p2.moving = 1
-
-});
-
-window.addEventListener("keyup", (e) => {
-    if (e.repeat) return;
-    if (myPlayer === null) return;
-
-    if (e.key === "w" || e.key == "s") {
-        sendMoveMessage(0)
-        myPlayer.moving = 0
-    }
-
-    // if (e.key === "ArrowUp" || e.key == "ArrowDown") {
-    //     p2.moving = 0
-    // }
-});
+// gameLoop()
