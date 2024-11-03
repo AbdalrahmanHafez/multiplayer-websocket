@@ -6,9 +6,13 @@ if (canvas === null) throw new Error("No element with id `canvas`")
 const ctx = canvas.getContext('2d');
 if (ctx === null) throw new Error("No 2D context")
 
+interface PlayerOnClient extends Player {
+    targety?: number
+}
+
 let gameState: GameState = GameState.WaitingPlayer
-let p1: Player = { ...init_playerLeft }
-let p2: Player = { ...init_playerRight }
+let p1: PlayerOnClient = { ...init_playerLeft }
+let p2: PlayerOnClient = { ...init_playerRight }
 let ball: Ball = { ...init_ball }
 
 const resetGameState = () => {
@@ -18,7 +22,8 @@ const resetGameState = () => {
     ball = { ...init_ball }
 }
 
-let myPlayer: Player | null = null
+
+let myPlayer: PlayerOnClient | null = null
 
 let ws: WebSocket;
 let reconnectAttempts = 0;
@@ -56,6 +61,25 @@ const connectWebSocket = () => {
         } else if (common.MessageMove.verify(view)) {
             (p1 === myPlayer ? p2 : p1).moving = common.MessageMove.moving.read(view);
         } else if (common.MessageResync.verify(view)) {
+            if (myPlayer?.moving === 0) {
+                if (myPlayer === p1) {
+                    myPlayer.targety = common.MessageResync.p1.y.read(view);
+                }
+                else {
+                    myPlayer.targety = common.MessageResync.p2.y.read(view);
+                }
+            }
+            const otherPlayer = p1 === myPlayer ? p2 : p1;
+
+
+            otherPlayer.box.y = common.MessageResync.p1.y.read(view);
+            if (otherPlayer === p2) {
+                otherPlayer.box.y = common.MessageResync.p2.y.read(view);
+
+            } else {
+                otherPlayer.box.y = common.MessageResync.p1.y.read(view);
+            }
+
             gameState = common.MessageResync.gamestate.read(view);
 
             ball.x = common.MessageResync.ball.x.read(view);
@@ -64,11 +88,11 @@ const connectWebSocket = () => {
             ball.dx = common.MessageResync.ball.dx.read(view);
 
             p1.moving = common.MessageResync.p1.moving.read(view);
-            p1.box.y = common.MessageResync.p1.y.read(view);
+            // p1.box.y = common.MessageResync.p1.y.read(view);
             p1.score = common.MessageResync.p1.score.read(view);
 
             p2.moving = common.MessageResync.p2.moving.read(view);
-            p2.box.y = common.MessageResync.p2.y.read(view);
+            // p2.box.y = common.MessageResync.p2.y.read(view);
             p2.score = common.MessageResync.p2.score.read(view);
         } else {
             console.log("[ERROR] Invalid message, closing WebSocket");
@@ -105,6 +129,8 @@ window.addEventListener("keydown", (e) => {
 
     if (myPlayer === null) return;
 
+    myPlayer.targety = undefined
+
     if (e.key === "w") {
         sendMoveMessage(-1)
         myPlayer.moving = -1
@@ -113,6 +139,7 @@ window.addEventListener("keydown", (e) => {
         sendMoveMessage(1)
         myPlayer.moving = 1
     }
+
 
     // if (e.key === "ArrowUp")
     //     p2.moving = -1
@@ -125,10 +152,13 @@ window.addEventListener("keyup", (e) => {
     if (e.repeat) return;
     if (myPlayer === null) return;
 
+    myPlayer.targety = undefined
+
     if (e.key === "w" || e.key == "s") {
         sendMoveMessage(0)
         myPlayer.moving = 0
     }
+
 
     // if (e.key === "ArrowUp" || e.key == "ArrowDown") {
     //     p2.moving = 0
@@ -171,6 +201,14 @@ var update = function (deltaTime: number) {
         ctx.fillText('' + p2.score, canvas.width / 2 + canvas.width / 4, canvas.height / 5);
 
         checkWin(ball, p1, p2)
+
+
+        if (p1.targety !== undefined)
+            p1.box.y += (p1.targety - p1.box.y) * 3 * deltaTime
+        if (p2.targety !== undefined)
+            p2.box.y += (p2.targety - p2.box.y) * 3 * deltaTime
+
+
 
         updatePlayerState(p1, deltaTime);
         updatePlayerState(p2, deltaTime);
