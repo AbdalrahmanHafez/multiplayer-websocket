@@ -1,5 +1,5 @@
 import * as common from './common.mjs'
-import { init_playerLeft, init_playerRight, Ball, Player, BBox, Point, SCREEN_PADDING, PLAYER_HEIGHT, PLAYER_SPEED, PLAYER_WIDTH, BALL_RADIUS, BALL_SPEED, GameState, init_ball, checkWin, updateBallState, updatePlayerState, applyCollidBallPlayer } from './common.mjs';
+import { init_playerLeft, init_playerRight, Ball, Player, BBox, Point, SCREEN_PADDING, PLAYER_HEIGHT, PLAYER_SPEED, PLAYER_WIDTH, BALL_RADIUS, BALL_SPEED, GameState, init_ball, handleWin, updateBallState, updatePlayerState, applyCollidBallPlayer } from './common.mjs';
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement | null;
 if (canvas === null) throw new Error("No element with id `canvas`")
@@ -200,7 +200,7 @@ var update = function (deltaTime: number) {
         ctx.fillText('' + p1.score, canvas.width / 2 - canvas.width / 4, canvas.height / 5);
         ctx.fillText('' + p2.score, canvas.width / 2 + canvas.width / 4, canvas.height / 5);
 
-        checkWin(ball, p1, p2)
+        handleWin(ball, p1, p2)
 
 
         if (p1.targety !== undefined)

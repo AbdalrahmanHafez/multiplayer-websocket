@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import * as common from './common.mjs'
-import { applyCollidBallPlayer, checkWin, updateBallState, updatePlayerState, log_debug, log_error, init_playerLeft, init_playerRight, GameState, Ball, init_ball, Player } from './common.mjs';
+import { applyCollidBallPlayer, handleWin, updateBallState, updatePlayerState, log_debug, log_error, init_playerLeft, init_playerRight, GameState, Ball, init_ball, Player } from './common.mjs';
 
 const TICKS_TO_SYNC = 30
 const SERVER_FPS = 60;
@@ -168,7 +168,7 @@ var update = function (deltaTime: number) {
     }
 
     if (p1 && p2 && gameState === GameState.Running) {
-        checkWin(ball, p1, p2)
+        handleWin(ball, p1, p2)
 
         updatePlayerState(p1, deltaTime);
         updatePlayerState(p2, deltaTime);

@@ -221,14 +221,16 @@ export const updateBallState = (ball: Ball, deltaTime: number) => {
 
 }
 
-export const checkWin = (ball: Ball, p1: Player, p2: Player) => {
+export const handleWin = (ball: Ball, p1: Player, p2: Player) => {
     if (ball.x > CANVAS_WIDTH) {
         p1.score += 1
         Object.assign(ball, init_ball)
+        ball.dx = 1
     }
     if (ball.x < 0) {
         p2.score += 1
         Object.assign(ball, init_ball)
+        ball.dx = -1
     }
 }
 
