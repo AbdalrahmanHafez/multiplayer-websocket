@@ -41,11 +41,13 @@ wss.on("connection", (ws, req) => {
         return
     }
 
+
     if (p1 === null) {
-        p1 = { ...init_playerLeft, ws: ws, remoteaddress: remoteAddress }
+        p1 = { ...structuredClone(init_playerLeft), ws: ws, remoteaddress: remoteAddress }
     } else {
-        p2 = { ...init_playerRight, ws: ws, remoteaddress: remoteAddress }
+        p2 = { ...structuredClone(init_playerRight), ws: ws, remoteaddress: remoteAddress }
     }
+
 
     if (p1 && p2) {
         gameState = GameState.Running;
@@ -82,7 +84,7 @@ wss.on("connection", (ws, req) => {
 
     ws.on("close", () => {
         console.log("[INFO] socket close")
-        if (p1 != null) p1.ws?.close()
+        if (p1 != null) p1.ws.close()
         if (p2 != null) p2.ws.close()
         resetGameState();
     })
@@ -120,14 +122,14 @@ function resetGameState() {
     gameState = GameState.WaitingPlayer;
     p1 = null
     p2 = null
-    ball = { ...init_ball }
+    ball = structuredClone(init_ball)
 }
 
 // STATE
 let gameState: GameState = GameState.WaitingPlayer;
 let p1: PlayerOnServer | null = null;
 let p2: PlayerOnServer | null = null
-let ball: Ball = { ...init_ball }
+let ball: Ball = structuredClone(init_ball)
 
 
 let ticksToSync = TICKS_TO_SYNC;

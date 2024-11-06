@@ -11,15 +11,15 @@ interface PlayerOnClient extends Player {
 }
 
 let gameState: GameState = GameState.WaitingPlayer
-let p1: PlayerOnClient = { ...init_playerLeft }
-let p2: PlayerOnClient = { ...init_playerRight }
-let ball: Ball = { ...init_ball }
+let p1: PlayerOnClient = structuredClone(init_playerLeft)
+let p2: PlayerOnClient = structuredClone(init_playerRight)
+let ball: Ball = structuredClone(init_ball)
 
 const resetGameState = () => {
     gameState = GameState.WaitingPlayer
-    p1 = { ...init_playerLeft }
-    p2 = { ...init_playerRight }
-    ball = { ...init_ball }
+    p1 = structuredClone(init_playerLeft)
+    p2 = structuredClone(init_playerRight)
+    ball = structuredClone(init_ball)
 }
 
 
