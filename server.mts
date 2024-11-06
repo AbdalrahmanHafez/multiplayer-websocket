@@ -82,17 +82,13 @@ wss.on("connection", (ws, req) => {
 
     ws.on("close", () => {
         console.log("[INFO] socket close")
-        if (p1 != null) {
-            p1.ws.close()
-            p1 = null
-        }
-        if (p2 != null) {
-            p2.ws.close()
-            p2 = null
-        }
+        if (p1 != null) p1.ws?.close()
+        if (p2 != null) p2.ws.close()
+        resetGameState();
     })
 
 });
+
 
 function sendSyncMessages() {
     if (p1 === null || p2 === null) return
@@ -120,10 +116,18 @@ function sendSyncMessages() {
 
 }
 
+function resetGameState() {
+    gameState = GameState.WaitingPlayer;
+    p1 = null
+    p2 = null
+    ball = { ...init_ball }
+}
+
+// STATE
 let gameState: GameState = GameState.WaitingPlayer;
 let p1: PlayerOnServer | null = null;
 let p2: PlayerOnServer | null = null
-const ball: Ball = { ...init_ball }
+let ball: Ball = { ...init_ball }
 
 
 let ticksToSync = TICKS_TO_SYNC;
@@ -141,7 +145,7 @@ var gameLoop = function () {
 
         update(delta)
 
-        console.log('delta', delta, '(target: ' + tickLengthMs + ' ms)', 'node ticks', actualTicks)
+        // console.log('delta', delta, '(target: ' + tickLengthMs + ' ms)', 'node ticks', actualTicks)
         actualTicks = 0
     }
 

@@ -18,7 +18,7 @@ let ball: Ball = { ...init_ball }
 const resetGameState = () => {
     gameState = GameState.WaitingPlayer
     p1 = { ...init_playerLeft }
-    p2 = { ...init_playerLeft }
+    p2 = { ...init_playerRight }
     ball = { ...init_ball }
 }
 
