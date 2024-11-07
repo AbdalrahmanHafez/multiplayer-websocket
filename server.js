@@ -36,4 +36,5 @@ cmd("http-server", [
   "-d",
   "false",
 ]);
-cmd("node", ["dist/server.mjs"]);
+
+// cmd("node", ["dist/server.mjs"]);

@@ -71,6 +71,18 @@ function allocInt8Field(allocator: { size: number }): Field {
     }
 }
 
+function allocFloat32Field(allocator: { size: number }): Field {
+    const offset = allocator.size;
+    allocator.size += FLOAT32_SIZE;
+    return {
+        offset,
+        size: FLOAT32_SIZE,
+        read: (view) => view.getFloat32(offset),
+        write: (view, data) => view.setFloat32(offset, data),
+    }
+}
+
+
 function allocPlayerStruct(allocator: { size: number }) {
     const offset = allocator.size;
     const y = allocUint16Field(allocator)
@@ -86,10 +98,10 @@ function allocPlayerStruct(allocator: { size: number }) {
 }
 function allocBallStruct(allocator: { size: number }) {
     const offset = allocator.size;
-    const x = allocUint16Field(allocator)
-    const y = allocUint16Field(allocator)
-    const dx = allocInt8Field(allocator)
-    const dy = allocInt8Field(allocator)
+    const x = allocFloat32Field(allocator)
+    const y = allocFloat32Field(allocator)
+    const dx = allocFloat32Field(allocator)
+    const dy = allocFloat32Field(allocator)
 
     return {
         offset,
@@ -234,13 +246,16 @@ export const handleWin = (ball: Ball, p1: Player, p2: Player) => {
     }
 }
 
-export const pointInRect = (p: Point, rect: BBox) => {
-    if (p.x >= rect.x && p.x <= rect.x + rect.w &&
-        p.y >= rect.y && p.y <= rect.y + rect.h)
-        return true
+const collidePointRect = (p: Point, rect: BBox): Point | null => {
+    if (p.x < rect.x || p.x > rect.x + rect.w || p.y < rect.y || p.y > rect.y + rect.h)
+        return null
 
-    return false
+    return {
+        x: p.x < rect.x + rect.w / 2 ? rect.x : rect.x + rect.w,
+        y: p.y < rect.y + rect.h / 2 ? rect.y : rect.y + rect.h,
+    } as Point
 }
+
 
 export const applyCollidBallPlayer = (ball: Ball, player: Player) => {
     assert(BALL_RADIUS * 2 < PLAYER_HEIGHT, "ball height must be less than player height")
@@ -251,12 +266,41 @@ export const applyCollidBallPlayer = (ball: Ball, player: Player) => {
     const bl = { x: ball.x - BALL_RADIUS, y: ball.y }
     const br = { x: ball.x + BALL_RADIUS, y: ball.y }
 
-    if (pointInRect(bt, player.box) || pointInRect(bb, player.box))
+
+    let collide = collidePointRect(bt, player.box)
+    if (collide) {
         ball.dy *= -1
+        ball.y = collide.y + BALL_RADIUS
+        return
+    }
 
+    collide = collidePointRect(bb, player.box)
+    if (collide) {
+        ball.dy *= -1
+        ball.y = collide.y - BALL_RADIUS
+        return
+    }
 
-    if (pointInRect(br, player.box) || pointInRect(bl, player.box))
+    collide = collidePointRect(bl, player.box)
+    if (collide) {
         ball.dx *= -1
+        ball.x = collide.x + BALL_RADIUS
+        return
+    }
+
+    collide = collidePointRect(br, player.box)
+    if (collide) {
+        ball.dx *= -1
+        ball.x = collide.x - BALL_RADIUS
+        return
+    }
+
+    // if (pointInRect(bt, player.box) || pointInRect(bb, player.box))
+    //     ball.dy *= -1
+
+
+    // if (pointInRect(br, player.box) || pointInRect(bl, player.box))
+    //     ball.dx *= -1
 
 }
 
