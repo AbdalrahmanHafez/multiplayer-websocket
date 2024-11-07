@@ -214,8 +214,7 @@ export const init_ball = {
 export const updatePlayerState = (player: Player, deltaTime: number) => {
     if (player.moving != 0) {
         const newY = player.box.y + player.moving * PLAYER_SPEED * deltaTime;
-        if (newY < CANVAS_HEIGHT - PLAYER_HEIGHT && newY > 0)
-            player.box.y = newY
+        player.box.y = Math.max(0, Math.min(CANVAS_HEIGHT - PLAYER_HEIGHT, newY))
     }
 }
 
