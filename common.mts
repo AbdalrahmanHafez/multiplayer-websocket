@@ -13,6 +13,7 @@ export const SCREEN_PADDING = 50;
 export const BALL_RADIUS = 9;
 export const BALL_SPEED = 400;
 
+const PLAYER_SWING_BALL_FORCE = 0.3
 
 export enum MessageKind {
     NewGame,
@@ -266,31 +267,43 @@ export const applyCollidBallPlayer = (ball: Ball, player: Player) => {
     const br = { x: ball.x + BALL_RADIUS, y: ball.y }
 
 
-    let collide = collidePointRect(bt, player.box)
-    if (collide) {
+    let outpoint = collidePointRect(bt, player.box)
+    if (outpoint) {
         ball.dy *= -1
-        ball.y = collide.y + BALL_RADIUS
+        ball.y = outpoint.y + BALL_RADIUS
         return
     }
 
-    collide = collidePointRect(bb, player.box)
-    if (collide) {
+    outpoint = collidePointRect(bb, player.box)
+    if (outpoint) {
         ball.dy *= -1
-        ball.y = collide.y - BALL_RADIUS
+        ball.y = outpoint.y - BALL_RADIUS
         return
     }
 
-    collide = collidePointRect(bl, player.box)
-    if (collide) {
+    outpoint = collidePointRect(bl, player.box)
+    if (outpoint) {
         ball.dx *= -1
-        ball.x = collide.x + BALL_RADIUS
+        ball.x = outpoint.x + BALL_RADIUS
+
+        if(player.moving == 1)
+            ball.dy += PLAYER_SWING_BALL_FORCE
+        else if(player.moving == -1)
+            ball.dy -= PLAYER_SWING_BALL_FORCE
+
         return
     }
-
-    collide = collidePointRect(br, player.box)
-    if (collide) {
+    
+    outpoint = collidePointRect(br, player.box)
+    if (outpoint) {
         ball.dx *= -1
-        ball.x = collide.x - BALL_RADIUS
+        ball.x = outpoint.x - BALL_RADIUS
+
+        if(player.moving == 1)
+            ball.dy += PLAYER_SWING_BALL_FORCE
+        else if(player.moving == -1)
+            ball.dy -= PLAYER_SWING_BALL_FORCE
+
         return
     }
 
